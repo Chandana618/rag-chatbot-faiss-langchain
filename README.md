@@ -18,3 +18,13 @@ This project is a **Retrieval-Augmented Generation (RAG) chatbot** that allows u
 - Streamlit
 
 ## 📂 Project Structure
+```text
+rag-chatbot-faiss-langchain/
+│
+├── documents/
+│   └── sample.pdf        # Add your PDF files here
+│
+├── app.py                # Main Streamlit application
+├── requirements.txt      # Project dependencies
+├── README.md             # Project documentation
+└── .gitignore            # Ignored files (venv, cache, etc.)
