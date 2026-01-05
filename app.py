@@ -50,7 +50,7 @@ def create_retriever(vectorstore):
 # -----------------------------
 def load_llm():
     return ChatGroq(
-        model="llama3-8b-8192",
+        model="mixtral-8x7b-32768",
         temperature=0
     )
 
@@ -97,4 +97,5 @@ if query:
 
 
     
+
 
