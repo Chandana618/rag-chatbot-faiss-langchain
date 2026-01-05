@@ -1,4 +1,4 @@
-📄 RAG-based Document Chatbot
+📄 RAG-based Document Chatbot.
 
 A Retrieval-Augmented Generation (RAG) chatbot that allows users to ask questions from their own PDF documents using semantic search and a large language model. The system retrieves relevant document chunks using vector similarity and generates accurate, context-grounded answers through an interactive Streamlit interface.
 
