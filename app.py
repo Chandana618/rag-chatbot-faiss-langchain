@@ -44,7 +44,7 @@ def create_vectorstore(chunks, embeddings):
 # Retriever
 # -----------------------------
 def create_retriever(vectorstore):
-    return vectorstore.as_retriever(search_kwargs={"k": 3})
+    return vectorstore.as_retriever(search_kwargs={"k": 2})
 
 # -----------------------------
 # LLM (Ollama)
@@ -111,6 +111,7 @@ if query:
 
 
     
+
 
 
 
