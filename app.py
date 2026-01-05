@@ -4,7 +4,8 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_community.llms import Ollama
+from langchain_groq import ChatGroq
+
 
 
 # -----------------------------
@@ -48,7 +49,11 @@ def create_retriever(vectorstore):
 # LLM (Ollama)
 # -----------------------------
 def load_llm():
-    return Ollama(model="mistral", temperature=0)
+    return ChatGroq(
+        model="llama3-8b-8192",
+        temperature=0
+    )
+
 
 # -----------------------------
 # RAG chain
@@ -69,7 +74,7 @@ Question:
 {query}
 """
 
-    return llm.invoke(prompt)
+    return llm.invoke(prompt).content
 
 
 # -----------------------------
@@ -92,3 +97,4 @@ if query:
 
 
     
+
