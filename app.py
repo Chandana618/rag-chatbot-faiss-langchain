@@ -5,6 +5,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
+from langchain_core.messages import HumanMessage
 
 
 
@@ -61,6 +62,9 @@ def load_llm():
 def ask_question(llm, retriever, query):
     docs = retriever.invoke(query)
 
+    if not docs:
+        return "No relevant information found in the documents."
+        
     context = "\n\n".join([doc.page_content for doc in docs])
 
     prompt = f"""
@@ -74,7 +78,11 @@ Question:
 {query}
 """
 
-    return llm.invoke(prompt).content
+try:
+        response = llm.invoke(messages)
+        return response.content
+    except Exception as e:
+        return "⚠️ The model is temporarily unavailable. Please try again later."
 
 
 # -----------------------------
@@ -97,5 +105,6 @@ if query:
 
 
     
+
 
 
