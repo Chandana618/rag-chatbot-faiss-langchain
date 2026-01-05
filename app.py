@@ -64,10 +64,13 @@ def ask_question(llm, retriever, query):
 
     if not docs:
         return "No relevant information found in the documents."
-        
-    context = "\n\n".join([doc.page_content for doc in docs])
 
-    prompt = f"""
+    # Limit context size to avoid Groq BadRequest
+    context = "\n\n".join(doc.page_content[:800] for doc in docs)
+
+    messages = [
+        HumanMessage(
+            content=f"""
 Answer the question using ONLY the context below.
 If the answer is not in the context, say "I don't know".
 
@@ -77,12 +80,15 @@ Context:
 Question:
 {query}
 """
+        )
+    ]
 
-try:
+    try:
         response = llm.invoke(messages)
         return response.content
-    except Exception as e:
+    except Exception:
         return "⚠️ The model is temporarily unavailable. Please try again later."
+
 
 
 # -----------------------------
@@ -105,6 +111,7 @@ if query:
 
 
     
+
 
 
 
