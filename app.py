@@ -8,13 +8,13 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
 
 
-
 # -----------------------------
 # Load documents
 # -----------------------------
 def load_documents():
     loader = PyPDFDirectoryLoader("documents")
     return loader.load()
+
 
 # -----------------------------
 # Split documents
@@ -26,6 +26,7 @@ def split_documents(docs):
     )
     return splitter.split_documents(docs)
 
+
 # -----------------------------
 # Embeddings
 # -----------------------------
@@ -34,11 +35,15 @@ def load_embeddings():
         model_name="all-MiniLM-L6-v2"
     )
 
+
 # -----------------------------
 # Vector store
 # -----------------------------
-def create_vectorstore(chunks, embeddings):
+@st.cache_resource(show_spinner=False)
+def create_vectorstore(chunks):
+    embeddings = load_embeddings()
     return FAISS.from_documents(chunks, embeddings)
+
 
 # -----------------------------
 # Retriever
@@ -46,8 +51,9 @@ def create_vectorstore(chunks, embeddings):
 def create_retriever(vectorstore):
     return vectorstore.as_retriever(search_kwargs={"k": 2})
 
+
 # -----------------------------
-# LLM (Ollama)
+# LLM (Groq)
 # -----------------------------
 def load_llm():
     return ChatGroq(
@@ -57,7 +63,7 @@ def load_llm():
 
 
 # -----------------------------
-# RAG chain
+# RAG Question Answering
 # -----------------------------
 def ask_question(llm, retriever, query):
     docs = retriever.invoke(query)
@@ -65,8 +71,8 @@ def ask_question(llm, retriever, query):
     if not docs:
         return "No relevant information found in the documents."
 
-    # Limit context size to avoid Groq BadRequest
-    context = "\n\n".join(doc.page_content[:800] for doc in docs)
+    # HARD limit context to avoid Groq BadRequest
+    context = "\n\n".join(doc.page_content[:600] for doc in docs)
 
     messages = [
         HumanMessage(
@@ -83,36 +89,29 @@ Question:
         )
     ]
 
-    try:
-        response = llm.invoke(messages)
-        return response.content
-    except Exception:
-        return "⚠️ The model is temporarily unavailable. Please try again later."
-
+    response = llm.invoke(messages)
+    return response.content
 
 
 # -----------------------------
 # Streamlit UI
 # -----------------------------
+st.set_page_config(page_title="Free RAG Chatbot", layout="centered")
+
 st.title("📄 Free RAG Chatbot")
+st.write("Ask questions based on your uploaded PDF documents.")
 
 query = st.text_input("Ask a question from your documents")
 
 if query:
-    docs = load_documents()
-    chunks = split_documents(docs)
-    embeddings = load_embeddings()
-    vectorstore = create_vectorstore(chunks, embeddings)
-    retriever = create_retriever(vectorstore)
-    llm = load_llm()
-    response = ask_question(llm, retriever, query)
+    with st.spinner("Processing your question..."):
+        docs = load_documents()
+        chunks = split_documents(docs)
+        vectorstore = create_vectorstore(chunks)
+        retriever = create_retriever(vectorstore)
+        llm = load_llm()
+
+        response = ask_question(llm, retriever, query)
+
     st.subheader("Answer")
     st.write(response)
-
-
-    
-
-
-
-
-
