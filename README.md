@@ -1,62 +1,50 @@
-📄 RAG-based Document Chatbot.
+# 📄 RAG-based Document Chatbot
 
-A Retrieval-Augmented Generation (RAG) chatbot that allows users to ask questions from their own PDF documents using semantic search and a large language model. The system retrieves relevant document chunks using vector similarity and generates accurate, context-grounded answers through an interactive Streamlit interface.
+A Retrieval-Augmented Generation (RAG) chatbot that enables users to ask questions from their own PDF documents using semantic search and a Large Language Model (LLM). The application retrieves relevant document content and generates accurate, context-based answers through an interactive Streamlit interface.
 
-🚀 Features
+---
 
-📑 Upload and query custom PDF documents
+## 🚀 Features
 
-✂️ Intelligent text chunking for better context retrieval
+- Query custom PDF documents
+- Text chunking with overlap for better context understanding
+- Semantic search using vector embeddings
+- Fast similarity search with FAISS
+- LLM-based answer generation (Groq API)
+- Interactive Streamlit web interface
+- No OpenAI API key required
 
-🔍 Semantic search using vector embeddings
+---
 
-⚡ Fast similarity search with FAISS
+## 🧠 How It Works
 
-🤖 LLM-powered answer generation (Groq API)
+1. PDF documents are loaded from the `documents/` folder  
+2. Text is split into overlapping chunks  
+3. Chunks are converted into vector embeddings  
+4. FAISS performs similarity search on embeddings  
+5. Relevant context is passed to the LLM  
+6. The LLM generates answers strictly based on retrieved context  
 
-🖥️ Interactive web UI built with Streamlit
+---
 
-🔑 No OpenAI API key required
+## 🛠 Tech Stack
 
-🧠 How It Works (RAG Pipeline)
+- Python  
+- LangChain  
+- FAISS  
+- Hugging Face Sentence Transformers  
+- Groq LLM  
+- Streamlit  
 
-Document Ingestion
-PDF files are loaded from the documents/ directory.
+---
 
-Text Splitting
-Documents are split into overlapping chunks to preserve context.
+## 📂 Project Structure
 
-Vector Embeddings
-Each chunk is converted into embeddings using a Hugging Face sentence transformer.
-
-Vector Store (FAISS)
-Embeddings are stored in FAISS for efficient similarity search.
-
-Retrieval
-The most relevant document chunks are retrieved for a given user query.
-
-Generation
-A Large Language Model generates answers strictly based on the retrieved context.
-
-🛠 Tech Stack
-
-Programming Language: Python
-
-Framework: LangChain
-
-Vector Database: FAISS
-
-Embeddings: Hugging Face Sentence Transformers
-
-LLM Provider: Groq
-
-Frontend: Streamlit
-
-📂 Project Structure
+```text
 rag-chatbot-faiss-langchain/
 │
-├── app.py                 # Main Streamlit application
-├── requirements.txt       # Python dependencies
-├── documents/             # Folder containing PDF files
-├── README.md              # Project documentation
+├── app.py
+├── requirements.txt
+├── documents/
+├── README.md
 └── .gitignore
