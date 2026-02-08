@@ -1,20 +1,18 @@
 import streamlit as st
-
+from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_community.llms import Ollama
-from PyPDF2 import PdfReader
+from langchain_groq import ChatGroq
+from pypdf import PdfReader
 
 from langchain_core.documents import Document
-
+load_dotenv()
 # -----------------------------
 # Load documents
 # -----------------------------
-def load_documents():
-    loader = PyPDFDirectoryLoader("documents")
-    return loader.load()
+
 
 # -----------------------------
 # Split documents
@@ -37,27 +35,29 @@ def load_embeddings():
 # -----------------------------
 # Vector store
 # -----------------------------
-def create_vectorstore(chunks, embeddings):
-    return FAISS.from_documents(chunks, embeddings)
+# def create_vectorstore(chunks, embeddings):
+#     st.success("Vector store created")
+#     return FAISS.from_documents(chunks, embeddings)
 
 # -----------------------------
 # Retriever
 # -----------------------------
-def create_retriever(vectorstore):
-    return vectorstore.as_retriever(search_kwargs={"k": 3})
+# def create_retriever(vectorstore):
+    
+#     return vectorstore.as_retriever(search_kwargs={"k": 3})
 
 # -----------------------------
 # LLM (Ollama)
 # -----------------------------
 def load_llm():
-    return Ollama(model="mistral", temperature=0)
+    return ChatGroq(model="llama-3.1-8b-instant", temperature=0.5)
 
 # -----------------------------
 # RAG chain
 # -----------------------------
 def ask_question(llm, retriever, query):
     docs = retriever.invoke(query)
-
+    st.write("Retrieved docs:", len(docs))
     context = "\n\n".join([doc.page_content for doc in docs])
 
     prompt = f"""
@@ -105,16 +105,16 @@ if pdf and st.session_state.vectorstore is None:
 
 query = st.text_input("Ask a question from your documents")
 
-if query:
-    docs = load_documents()
-    chunks = split_documents(docs)
-    embeddings = load_embeddings()
-    vectorstore = create_vectorstore(chunks, embeddings)
-    retriever = create_retriever(vectorstore)
+if query and st.session_state.vectorstore:
+    retriever = st.session_state.vectorstore.as_retriever(
+        search_kwargs={"k": 6}
+    )
+
     llm = load_llm()
-    response = ask_question(llm, retriever, query)
+    answer = ask_question(llm, retriever, query)
+
     st.subheader("Answer")
-    st.write(response)
+    st.write(answer.content)
 
-
-    
+elif query:
+    st.warning("Please upload a PDF first.")
