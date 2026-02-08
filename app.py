@@ -12,6 +12,8 @@ load_dotenv()
 # -----------------------------
 # Load documents
 # -----------------------------
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
 
 # -----------------------------
@@ -55,14 +57,33 @@ def load_llm():
 # -----------------------------
 # RAG chain
 # -----------------------------
-def ask_question(llm, retriever, query):
-    docs = retriever.invoke(query)
-    st.write("Retrieved docs:", len(docs))
-    context = "\n\n".join([doc.page_content for doc in docs])
+def ask_question(llm, vectorstore, query,chat_history):
+    results = vectorstore.similarity_search_with_score(query,k=5)
+    
+    if not results:
+        return "I couldn’t find relevant information in the document."
+    scores = [score for _, score in results]
+    best_score = min(scores)
+    if best_score > 1.2:
+        return "The document does not clearly contain an answer to this question."
+
+    docs = [doc for doc, _ in results]
+    context = "\n\n".join(doc.page_content for doc in docs)
+
+    if best_score < 0.6:
+        tone = "Answer confidently."
+    else:
+        tone = "Answer cautiously and mention possible uncertainty."
+    
+    # Use last 3 turns only (realistic)
+    history_text = ""
+    for q, a in chat_history[-3:]:
+        history_text += f"User: {q}\nAssistant: {a}\n"
 
     prompt = f"""
 Answer the question using ONLY the context below.
-If the answer is not in the context, say "I don't know".
+You are a helpful assistant.
+{tone}
 
 Context:
 {context}
@@ -71,7 +92,7 @@ Question:
 {query}
 """
 
-    return llm.invoke(prompt)
+    return llm.invoke(prompt).content
 
 
 # -----------------------------
@@ -111,10 +132,10 @@ if query and st.session_state.vectorstore:
     )
 
     llm = load_llm()
-    answer = ask_question(llm, retriever, query)
-
+    answer = ask_question(llm, st.session_state.vectorstore, query,st.session_state.chat_history)
+    st.session_state.chat_history.append((query, answer))
     st.subheader("Answer")
-    st.write(answer.content)
+    st.write(answer)
 
 elif query:
     st.warning("Please upload a PDF first.")
