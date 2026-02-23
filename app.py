@@ -9,12 +9,6 @@ from pypdf import PdfReader
 
 from langchain_core.documents import Document
 load_dotenv()
-# -----------------------------
-# Load documents
-# -----------------------------
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
 
 # -----------------------------
 # Split documents
@@ -57,33 +51,47 @@ def load_llm():
 # -----------------------------
 # RAG chain
 # -----------------------------
-def ask_question(llm, vectorstore, query,chat_history):
-    results = vectorstore.similarity_search_with_score(query,k=5)
+def ask_question(llm, vectorstore, query):
+    results = vectorstore.similarity_search_with_score(query,k=3)
     
     if not results:
         return "I couldn’t find relevant information in the document."
     scores = [score for _, score in results]
     best_score = min(scores)
-    if best_score > 1.2:
+    if best_score > 1.0:
         return "The document does not clearly contain an answer to this question."
 
     docs = [doc for doc, _ in results]
-    context = "\n\n".join(doc.page_content for doc in docs)
-
-    if best_score < 0.6:
-        tone = "Answer confidently."
-    else:
-        tone = "Answer cautiously and mention possible uncertainty."
     
-    # Use last 3 turns only (realistic)
-    history_text = ""
-    for q, a in chat_history[-3:]:
-        history_text += f"User: {q}\nAssistant: {a}\n"
+    sources = []
+    context = ""
+    for doc in docs:
+      context += doc.page_content + "\n\n"
+      if "page" in doc.metadata:
+         sources.append(doc.metadata["page"])
+ 
+    
+    
+    
+   # if best_score < 0.6:
+    #     tone = "Answer confidently."
+    # else:
+    #     tone = "Answer cautiously and mention possible uncertainty."
+    
+    # # Use last 3 turns only (realistic)
+    # history_text = ""
+    # for q, a in chat_history[-3:]:
+    #     history_text += f"User: {q}\nAssistant: {a}\n"
 
     prompt = f"""
-Answer the question using ONLY the context below.
-You are a helpful assistant.
-{tone}
+You are an academic assistant.
+
+Using ONLY the provided context:
+- Give a clear definition.
+- Explain key points.
+- Keep the answer concise (5-7 sentences) and structured way.
+- Do not repeat ideas.
+- Do NOT mention uncertainty unless the context explicitly says so.
 
 Context:
 {context}
@@ -92,7 +100,8 @@ Question:
 {query}
 """
 
-    return llm.invoke(prompt).content
+    answer=llm.invoke(prompt).content
+    return answer, list(set(sources))
 
 
 # -----------------------------
@@ -105,18 +114,25 @@ pdf = st.file_uploader("Upload a PDF", type="pdf")
 # Session state for vectorstore
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
-    
+
 if pdf and st.session_state.vectorstore is None:
     st.info("Processing PDF...")
 
     reader = PdfReader(pdf)
-    text = ""
-    for page in reader.pages:
-        if page.extract_text():
-            text += page.extract_text()
 
-    docs = [Document(page_content=text)]
+    docs = []
 
+    for i, page in enumerate(reader.pages):
+       text = page.extract_text()
+       if text:
+            docs.append(
+               Document(
+                page_content=text,
+                metadata={"page": i + 1}
+               )
+            )
+    
+   
     chunks = split_documents(docs)
     embeddings = load_embeddings()
     st.session_state.vectorstore = FAISS.from_documents(chunks, embeddings)
@@ -132,10 +148,14 @@ if query and st.session_state.vectorstore:
     )
 
     llm = load_llm()
-    answer = ask_question(llm, st.session_state.vectorstore, query,st.session_state.chat_history)
-    st.session_state.chat_history.append((query, answer))
+    answer,sources = ask_question(llm, st.session_state.vectorstore, query)
+    # st.session_state.chat_history.append((query, answer))
     st.subheader("Answer")
     st.write(answer)
+    clean_sources = sorted(set(sources))
+    formatted = ", ".join([f"Page {p}" for p in clean_sources])
+    st.write("📌 Sources:", formatted)
+    
 
 elif query:
     st.warning("Please upload a PDF first.")
