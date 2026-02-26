@@ -10,6 +10,8 @@ from pypdf import PdfReader
 from langchain_core.documents import Document
 load_dotenv()
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 # -----------------------------
 # Split documents
 # -----------------------------
@@ -20,6 +22,17 @@ def split_documents(docs):
     )
     return splitter.split_documents(docs)
 
+def retrivepages_with_metadata(reader,docs):
+    for i, page in enumerate(reader.pages):
+       text = page.extract_text()
+       if text:
+            docs.append(
+               Document(
+                page_content=text,
+                metadata={"page": i + 1}
+               )
+            )
+    return docs
 # -----------------------------
 # Embeddings
 # -----------------------------
@@ -28,23 +41,7 @@ def load_embeddings():
         model_name="all-MiniLM-L6-v2"
     )
 
-# -----------------------------
-# Vector store
-# -----------------------------
-# def create_vectorstore(chunks, embeddings):
-#     st.success("Vector store created")
-#     return FAISS.from_documents(chunks, embeddings)
 
-# -----------------------------
-# Retriever
-# -----------------------------
-# def create_retriever(vectorstore):
-    
-#     return vectorstore.as_retriever(search_kwargs={"k": 3})
-
-# -----------------------------
-# LLM (Ollama)
-# -----------------------------
 def load_llm():
     return ChatGroq(model="llama-3.1-8b-instant", temperature=0.5)
 
@@ -55,13 +52,23 @@ def ask_question(llm, vectorstore, query):
     results = vectorstore.similarity_search_with_score(query,k=3)
     
     if not results:
-        return "I couldn’t find relevant information in the document."
-    scores = [score for _, score in results]
+        return "I couldn’t find relevant information in the document.",[]
+    
+    docs = []
+    scores = []
+
+    for item in results:
+        if isinstance(item, tuple):
+           doc, score = item
+           docs.append(doc)
+           scores.append(score)
+        else:
+           docs.append(item)
     best_score = min(scores)
     if best_score > 1.0:
-        return "The document does not clearly contain an answer to this question."
+        return "The document does not clearly contain an answer to this question.",[]
 
-    docs = [doc for doc, _ in results]
+    
     
     sources = []
     context = ""
@@ -70,35 +77,22 @@ def ask_question(llm, vectorstore, query):
       if "page" in doc.metadata:
          sources.append(doc.metadata["page"])
  
-    
-    
-    
-   # if best_score < 0.6:
-    #     tone = "Answer confidently."
-    # else:
-    #     tone = "Answer cautiously and mention possible uncertainty."
-    
-    # # Use last 3 turns only (realistic)
-    # history_text = ""
-    # for q, a in chat_history[-3:]:
-    #     history_text += f"User: {q}\nAssistant: {a}\n"
-
     prompt = f"""
-You are an academic assistant.
+        You are an academic assistant.
 
-Using ONLY the provided context:
-- Give a clear definition.
-- Explain key points.
-- Keep the answer concise (5-7 sentences) and structured way.
-- Do not repeat ideas.
-- Do NOT mention uncertainty unless the context explicitly says so.
+        Using ONLY the provided context:
+        - Give a clear definition.
+        - Explain key points.
+        - Keep the answer concise (5-7 sentences) and structured way.
+        - Do not repeat ideas.
+        - Do NOT mention uncertainty unless the context explicitly says so.
 
-Context:
-{context}
+    Context:
+    {context}
 
-Question:
-{query}
-"""
+    Question:
+    {query}
+    """
 
     answer=llm.invoke(prompt).content
     return answer, list(set(sources))
@@ -122,17 +116,7 @@ if pdf and st.session_state.vectorstore is None:
 
     docs = []
 
-    for i, page in enumerate(reader.pages):
-       text = page.extract_text()
-       if text:
-            docs.append(
-               Document(
-                page_content=text,
-                metadata={"page": i + 1}
-               )
-            )
-    
-   
+    docs=retrivepages_with_metadata(reader,docs)
     chunks = split_documents(docs)
     embeddings = load_embeddings()
     st.session_state.vectorstore = FAISS.from_documents(chunks, embeddings)
@@ -140,7 +124,7 @@ if pdf and st.session_state.vectorstore is None:
     st.success("PDF processed successfully!")
     
 
-query = st.text_input("Ask a question from your documents")
+query = st.chat_input("Ask a question")
 
 if query and st.session_state.vectorstore:
     retriever = st.session_state.vectorstore.as_retriever(
@@ -149,13 +133,27 @@ if query and st.session_state.vectorstore:
 
     llm = load_llm()
     answer,sources = ask_question(llm, st.session_state.vectorstore, query)
-    # st.session_state.chat_history.append((query, answer))
-    st.subheader("Answer")
-    st.write(answer)
-    clean_sources = sorted(set(sources))
-    formatted = ", ".join([f"Page {p}" for p in clean_sources])
-    st.write("📌 Sources:", formatted)
     
+    st.session_state.chat_history.append({
+        "question": query,
+        "answer": answer,
+        "sources": sources
+    })
+    # st.session_state.chat_history.append((query, answer))
+    # st.subheader("Answer")
+    # st.write(answer)
+    # clean_sources = sorted(set(sources))
+    # formatted = ", ".join([f"Page {p}" for p in clean_sources])
+    # st.write("📌 Sources:", formatted)
+    for chat in st.session_state.chat_history:
+        with st.chat_message("user"):
+            st.write(chat["question"])
+
+        with st.chat_message("assistant"):
+           st.write(chat["answer"])
+           if chat["sources"]:
+               formatted = ", ".join([f"Page {p}" for p in sorted(chat["sources"])])
+               st.write(f"📌 Sources: {formatted}")
 
 elif query:
     st.warning("Please upload a PDF first.")
