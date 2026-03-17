@@ -103,14 +103,14 @@ def ask_question(llm, vectorstore, query):
 # -----------------------------
 st.sidebar.title("📄 Free RAG Chatbot")
 
-pdf = st.sidebar.file_uploader("Upload a PDFs", type="pdf",accept_multiple_files=True)
+pdfs = st.sidebar.file_uploader("Upload a PDFs", type="pdf",accept_multiple_files=True)
 process=st.sidebar.button("🚀 Process PDFs")
 
 # Session state for vectorstore
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 if process:
-    if not pdf:
+    if not pdfs:
         st.sidebar.warning("please upload atleast one pdf")
     else:
          st.session_state.vectorstore = None
@@ -118,7 +118,7 @@ if process:
         
 
     all_docs=[]
-    for pdf in pds:
+    for pdf in pdfs:
       reader = PdfReader(pdf)
       docs=retrivepages_with_metadata(reader,docs)
 
