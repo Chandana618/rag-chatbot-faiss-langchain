@@ -113,7 +113,7 @@ if process:
     if not pdf:
         st.sidebar.warning("please upload atleast one pdf")
     else:
-         st.session_state.vectorstore = None:
+         st.session_state.vectorstore = None
          st.sidebar.info("Processing PDF...")
         
 
