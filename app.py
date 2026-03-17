@@ -103,7 +103,7 @@ def ask_question(llm, vectorstore, query):
 # -----------------------------
 st.sidebar.title("📄 Free RAG Chatbot")
 
-pdf = st.sidebar.file_uploader("Upload a PDF", type="pdf")
+pdf = st.sidebar.file_uploader("Upload a PDFs", type="pdf",accept_multiple_files=true)
 
 # Session state for vectorstore
 if "vectorstore" not in st.session_state:
@@ -111,13 +111,18 @@ if "vectorstore" not in st.session_state:
 
 if pdf and st.session_state.vectorstore is None:
     st.sidebar.info("Processing PDF...")
+    all_docs=[]
+    for pdf in pds:
+      reader = PdfReader(pdf)
+      docs=retrivepages_with_metadata(reader,docs)
 
-    reader = PdfReader(pdf)
+      for d in doc:
+          d.metadata["sources"]=pdf.name
+      all_docs.extend(docs)
+    
 
-    docs = []
-
-    docs=retrivepages_with_metadata(reader,docs)
-    chunks = split_documents(docs)
+    
+    chunks = split_documents(all_docs)
     embeddings = load_embeddings()
     st.session_state.vectorstore = FAISS.from_documents(chunks, embeddings)
 
