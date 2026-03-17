@@ -124,7 +124,7 @@ if process:
       docs=retrivepages_with_metadata(reader,docs)
 
       for d in docs:
-          d.metadata["sources"]=pdf.name
+          d.metadata["source"]=pdf.name
       all_docs.extend(docs)
     
 
