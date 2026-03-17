@@ -75,7 +75,7 @@ def ask_question(llm, vectorstore, query):
     for doc in docs:
       context += doc.page_content + "\n\n"
       if "page" in doc.metadata:
-         sources.append(doc.metadata["page"])
+         sources.append(f"{doc.metadata.get('source','Unknown')} - Page {doc.metadata['page']}")
  
     prompt = f"""
         You are an academic assistant.
@@ -103,14 +103,20 @@ def ask_question(llm, vectorstore, query):
 # -----------------------------
 st.sidebar.title("📄 Free RAG Chatbot")
 
-pdf = st.sidebar.file_uploader("Upload a PDFs", type="pdf",accept_multiple_files=true)
+pdf = st.sidebar.file_uploader("Upload a PDFs", type="pdf",accept_multiple_files=True)
+process=st.sidebar.button("🚀 Process PDFs")
 
 # Session state for vectorstore
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
+if process:
+    if not pdf:
+        st.sidebar.warning("please upload atleast one pdf")
+    else:
+         st.session_state.vectorstore = None:
+         st.sidebar.info("Processing PDF...")
+        
 
-if pdf and st.session_state.vectorstore is None:
-    st.sidebar.info("Processing PDF...")
     all_docs=[]
     for pdf in pds:
       reader = PdfReader(pdf)
