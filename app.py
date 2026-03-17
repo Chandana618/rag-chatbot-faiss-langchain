@@ -164,7 +164,7 @@ if query and st.session_state.vectorstore:
         with st.chat_message("assistant"):
            st.write(chat["answer"])
            if chat["sources"]:
-               formatted = ", ".join([f"Page {p}" for p in sorted(chat["sources"])])
+               formatted = ", ".join([f"{p}" for p in sorted(chat["sources"])])
                st.write(f"📌 Sources: {formatted}")
 
 elif query:
