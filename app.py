@@ -120,9 +120,10 @@ if process:
     all_docs=[]
     for pdf in pdfs:
       reader = PdfReader(pdf)
+      docs=[]
       docs=retrivepages_with_metadata(reader,docs)
 
-      for d in doc:
+      for d in docs:
           d.metadata["sources"]=pdf.name
       all_docs.extend(docs)
     
