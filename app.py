@@ -101,16 +101,16 @@ def ask_question(llm, vectorstore, query):
 # -----------------------------
 # Streamlit UI
 # -----------------------------
-st.title("📄 Free RAG Chatbot")
+st.sidebar.title("📄 Free RAG Chatbot")
 
-pdf = st.file_uploader("Upload a PDF", type="pdf")
+pdf = st.sidebar.file_uploader("Upload a PDF", type="pdf")
 
 # Session state for vectorstore
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 
 if pdf and st.session_state.vectorstore is None:
-    st.info("Processing PDF...")
+    st.sidebar.info("Processing PDF...")
 
     reader = PdfReader(pdf)
 
@@ -121,9 +121,9 @@ if pdf and st.session_state.vectorstore is None:
     embeddings = load_embeddings()
     st.session_state.vectorstore = FAISS.from_documents(chunks, embeddings)
 
-    st.success("PDF processed successfully!")
+    st.sidebar.success("PDF processed successfully!")
     
-
+st.title("💬 RAG Chatbot")
 query = st.chat_input("Ask a question")
 
 if query and st.session_state.vectorstore:
