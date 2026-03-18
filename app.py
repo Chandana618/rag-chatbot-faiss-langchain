@@ -148,7 +148,7 @@ if query and st.session_state.vectorstore:
     answer,sources,error = ask_question(llm, st.session_state.vectorstore, query)
 
     with st.chat_message("user"):
-    st.write(query)
+        st.write(query)
 
 with st.chat_message("assistant"):
     if error:
