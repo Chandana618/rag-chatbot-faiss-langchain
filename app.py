@@ -146,7 +146,8 @@ if query and st.session_state.vectorstore:
 
     llm = load_llm()
     answer,sources = ask_question(llm, st.session_state.vectorstore, query)
-
+    if "Not found in document" in answer:
+        sources = []
     
     st.session_state.chat_history.append({
         "question": query,
