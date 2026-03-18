@@ -153,17 +153,17 @@ if query and st.session_state.vectorstore:
     with st.chat_message("assistant"):
         if error:
            st.write(error)
-           answer = error
+           ans = error
         else:
-           answer = ""
+           ans = ""
            placeholder = st.empty()
 
-        for chunk in llm.stream(prompt):
+        for chunk in llm.stream(answer):
             if chunk.content:
-                answer += chunk.content
-                placeholder.markdown(answer + "▌")
+                ans += chunk.content
+                placeholder.markdown(ans + "▌")
 
-        placeholder.markdown(answer)
+        placeholder.markdown(ans)
 
         # ✅ show sources AFTER streaming
         if sources:
