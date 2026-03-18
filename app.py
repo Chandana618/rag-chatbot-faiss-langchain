@@ -184,6 +184,5 @@ if query and st.session_state.vectorstore:
            if chat["sources"]:
                formatted = ", ".join([f"Page {p}" for p in sorted(chat["sources"])])
                st.write(f"📌 Sources: {formatted}")
-
- elif query:
+elif query:
     st.warning("Please upload a PDF first.")
