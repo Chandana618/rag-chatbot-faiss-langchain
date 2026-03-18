@@ -81,13 +81,12 @@ def ask_question(llm, vectorstore, query):
          sources.append(f"{src} - Page {page}")
  
     prompt = f"""
-        You are a precise academic assistant.
-
-Rules:
-- Answer ONLY from the provided context
-- If answer not found, say: "Not found in document"
-- Keep answer structured and concise
-- Use bullet points if helpful
+       You are an academic assistant. Using ONLY the provided context:
+       - Give a clear definition.
+       - Explain key points.
+       - Keep the answer concise (5-7 sentences) and structured way.
+       - Do not repeat ideas.
+       - Do NOT mention uncertainty unless the context explicitly says so.
 
     Context:
     {context}
