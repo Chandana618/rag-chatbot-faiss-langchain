@@ -150,13 +150,13 @@ if query and st.session_state.vectorstore:
     with st.chat_message("user"):
         st.write(query)
 
-with st.chat_message("assistant"):
-    if error:
-        st.write(error)
-        answer = error
-    else:
-        answer = ""
-        placeholder = st.empty()
+    with st.chat_message("assistant"):
+        if error:
+           st.write(error)
+           answer = error
+       else:
+           answer = ""
+           placeholder = st.empty()
 
         for chunk in llm.stream(prompt):
             if chunk.content:
@@ -185,5 +185,5 @@ with st.chat_message("assistant"):
                formatted = ", ".join([f"Page {p}" for p in sorted(chat["sources"])])
                st.write(f"📌 Sources: {formatted}")
 
-elif query:
+ elif query:
     st.warning("Please upload a PDF first.")
