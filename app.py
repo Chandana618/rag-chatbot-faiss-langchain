@@ -96,7 +96,7 @@ def ask_question(llm, vectorstore, query):
     """
 
     answer=llm.invoke(prompt).content
-    return answer, list(set(sources)),None
+    return answer, list(set(sources))
 
 
 # -----------------------------
@@ -145,30 +145,9 @@ query = st.chat_input("Ask a question")
 if query and st.session_state.vectorstore:
 
     llm = load_llm()
-    answer,sources,error = ask_question(llm, st.session_state.vectorstore, query)
+    answer,sources = ask_question(llm, st.session_state.vectorstore, query)
 
-    with st.chat_message("user"):
-        st.write(query)
-
-    with st.chat_message("assistant"):
-        if error:
-           st.write(error)
-           ans = error
-        else:
-           ans = ""
-           placeholder = st.empty()
-
-        for chunk in llm.stream(answer):
-            if chunk.content:
-                ans += chunk.content
-                placeholder.markdown(ans + "▌")
-
-        placeholder.markdown(ans)
-
-        # ✅ show sources AFTER streaming
-        if sources:
-            formatted = ", ".join(sources)
-            st.write(f"📌 Sources: {formatted}")
+    
     st.session_state.chat_history.append({
         "question": query,
         "answer": answer,
