@@ -154,7 +154,7 @@ if query and st.session_state.vectorstore:
         if error:
            st.write(error)
            answer = error
-       else:
+        else:
            answer = ""
            placeholder = st.empty()
 
