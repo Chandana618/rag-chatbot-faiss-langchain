@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -12,6 +13,9 @@ load_dotenv()
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "vectorstore" not in st.session_state:
+    st.session_state.vectorstore = None
+FAISS_PATH = "faiss_index"
 # -----------------------------
 # Split documents
 # -----------------------------
@@ -22,24 +26,37 @@ def split_documents(docs):
     )
     return splitter.split_documents(docs)
 
-def retrivepages_with_metadata(reader,docs):
+def retrivepages_with_metadata(reader,docs,filename):
     for i, page in enumerate(reader.pages):
        text = page.extract_text()
        if text:
             docs.append(
                Document(
                 page_content=text,
-                metadata={"page": i + 1}
+                metadata={"page": i + 1,
+                          "source": filename}
+
                )
             )
     return docs
 # -----------------------------
 # Embeddings
 # -----------------------------
+@st.cache_resource
 def load_embeddings():
     return HuggingFaceEmbeddings(
         model_name="all-MiniLM-L6-v2"
     )
+
+
+def load_vectorstore(embeddings):
+    if os.path.exists(FAISS_PATH):
+        return FAISS.load_local(
+            FAISS_PATH,
+            embeddings,
+            allow_dangerous_deserialization=True
+        )
+    return None
 
 
 def load_llm():
@@ -49,43 +66,28 @@ def load_llm():
 # RAG chain
 # -----------------------------
 def ask_question(llm, vectorstore, query):
-    results = vectorstore.similarity_search_with_score(query,k=3)
+    results = vectorstore.similarity_search(query,k=4)
     
     if not results:
-        return "I couldn’t find relevant information in the document.",[]
-    
-    docs = []
-    scores = []
-
-    for item in results:
-        if isinstance(item, tuple):
-           doc, score = item
-           docs.append(doc)
-           scores.append(score)
-        else:
-           docs.append(item)
-    best_score = min(scores)
-    if best_score > 1.0:
-        return "The document does not clearly contain an answer to this question.",[]
-
-    
-    
+        return "I couldn’t find relevant information in the document.",[]   
     sources = []
     context = ""
-    for doc in docs:
+    for doc in results:
+      src=doc.metadata.get('source','unknown')
+      page=doc.metadata.get('page','?')
+      context += f"[Source: {src}, Page: {page}]\n"
       context += doc.page_content + "\n\n"
       if "page" in doc.metadata:
-         sources.append(f"{doc.metadata.get('source','Unknown')} - Page {doc.metadata['page']}")
+         sources.append(f"{src} - Page {page}")
  
     prompt = f"""
-        You are an academic assistant.
+        You are a precise academic assistant.
 
-        Using ONLY the provided context:
-        - Give a clear definition.
-        - Explain key points.
-        - Keep the answer concise (5-7 sentences) and structured way.
-        - Do not repeat ideas.
-        - Do NOT mention uncertainty unless the context explicitly says so.
+Rules:
+- Answer ONLY from the provided context
+- If answer not found, say: "Not found in document"
+- Keep answer structured and concise
+- Use bullet points if helpful
 
     Context:
     {context}
@@ -121,10 +123,7 @@ if process:
     for pdf in pdfs:
       reader = PdfReader(pdf)
       docs=[]
-      docs=retrivepages_with_metadata(reader,docs)
-
-      for d in docs:
-          d.metadata["source"]=pdf.name
+      docs=retrivepages_with_metadata(reader,docs,pdf.name)
       all_docs.extend(docs)
     
 
@@ -132,16 +131,19 @@ if process:
     chunks = split_documents(all_docs)
     embeddings = load_embeddings()
     st.session_state.vectorstore = FAISS.from_documents(chunks, embeddings)
-
+    # ✅ SAVE (Persistence)
+    st.session_state.vectorstore.save_local(FAISS_PATH)
     st.sidebar.success("PDF processed successfully!")
     
+    st.sidebar.markdown("### 📊 Stats")
+    st.sidebar.write(f"Documents: {len(all_docs)}")
+    st.sidebar.write(f"Chunks: {len(chunks)}")
+
+
 st.title("💬 RAG Chatbot")
 query = st.chat_input("Ask a question")
 
 if query and st.session_state.vectorstore:
-    retriever = st.session_state.vectorstore.as_retriever(
-        search_kwargs={"k": 6}
-    )
 
     llm = load_llm()
     answer,sources = ask_question(llm, st.session_state.vectorstore, query)
@@ -151,12 +153,7 @@ if query and st.session_state.vectorstore:
         "answer": answer,
         "sources": sources
     })
-    # st.session_state.chat_history.append((query, answer))
-    # st.subheader("Answer")
-    # st.write(answer)
-    # clean_sources = sorted(set(sources))
-    # formatted = ", ".join([f"Page {p}" for p in clean_sources])
-    # st.write("📌 Sources:", formatted)
+    
     for chat in st.session_state.chat_history:
         with st.chat_message("user"):
             st.write(chat["question"])
@@ -164,7 +161,7 @@ if query and st.session_state.vectorstore:
         with st.chat_message("assistant"):
            st.write(chat["answer"])
            if chat["sources"]:
-               formatted = ", ".join([f"{p}" for p in sorted(chat["sources"])])
+               formatted = ", ".join([f"Page {p}" for p in sorted(chat["sources"])])
                st.write(f"📌 Sources: {formatted}")
 
 elif query:
