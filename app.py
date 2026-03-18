@@ -60,7 +60,7 @@ def load_vectorstore(embeddings):
 
 
 def load_llm():
-    return ChatGroq(model="llama-3.1-8b-instant", temperature=0.5)
+    return ChatGroq(model="llama-3.1-8b-instant", temperature=0.5,streaming=True)
 
 # -----------------------------
 # RAG chain
@@ -96,7 +96,7 @@ def ask_question(llm, vectorstore, query):
     """
 
     answer=llm.invoke(prompt).content
-    return answer, list(set(sources))
+    return answer, list(set(sources)),None
 
 
 # -----------------------------
@@ -145,8 +145,30 @@ query = st.chat_input("Ask a question")
 if query and st.session_state.vectorstore:
 
     llm = load_llm()
-    answer,sources = ask_question(llm, st.session_state.vectorstore, query)
-    
+    answer,sources,error = ask_question(llm, st.session_state.vectorstore, query)
+
+    with st.chat_message("user"):
+    st.write(query)
+
+with st.chat_message("assistant"):
+    if error:
+        st.write(error)
+        answer = error
+    else:
+        answer = ""
+        placeholder = st.empty()
+
+        for chunk in llm.stream(prompt):
+            if chunk.content:
+                answer += chunk.content
+                placeholder.markdown(answer + "▌")
+
+        placeholder.markdown(answer)
+
+        # ✅ show sources AFTER streaming
+        if sources:
+            formatted = ", ".join(sources)
+            st.write(f"📌 Sources: {formatted}")
     st.session_state.chat_history.append({
         "question": query,
         "answer": answer,
