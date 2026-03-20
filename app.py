@@ -26,11 +26,17 @@ def split_documents(docs):
     )
     return splitter.split_documents(docs)
 
-def retrivepages_with_metadata(reader,docs,filename):
-    for i, page in enumerate(reader.pages):
-       text = page.extract_text()
-       if text:
-            docs.append(
+
+def retrivepages_with_metadata(pdfs):
+    all_docs=[]
+    for pdf in pdfs:
+      reader = PdfReader(pdf)
+      docs=[]
+      
+      for i, page in enumerate(reader.pages):
+         text = page.extract_text()
+         if text:
+             docs.append(
                Document(
                 page_content=text,
                 metadata={"page": i + 1,
@@ -38,7 +44,8 @@ def retrivepages_with_metadata(reader,docs,filename):
 
                )
             )
-    return docs
+      all_docs.extend(docs)
+    return all_docs
 # -----------------------------
 # Embeddings
 # -----------------------------
@@ -118,16 +125,11 @@ if process:
          st.sidebar.info("Processing PDF...")
         
 
-    all_docs=[]
-    for pdf in pdfs:
-      reader = PdfReader(pdf)
-      docs=[]
-      docs=retrivepages_with_metadata(reader,docs,pdf.name)
-      all_docs.extend(docs)
+    
     
 
-    
-    chunks = split_documents(all_docs)
+    text=get_raw_text(pdfs) 
+    chunks = split_documents(text)
     embeddings = load_embeddings()
     st.session_state.vectorstore = FAISS.from_documents(chunks, embeddings)
     # ✅ SAVE (Persistence)
